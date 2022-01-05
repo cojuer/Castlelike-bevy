@@ -1,0 +1,13 @@
+[package]
+name = "Castlelike-bevy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = {version="0.5"}
+serde = {version="1"}
+serde_yaml = "0.8"
+
+[[bin]]
+name = "game"
+path = "src/main.rs"
