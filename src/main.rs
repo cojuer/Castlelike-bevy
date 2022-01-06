@@ -1,5 +1,6 @@
 mod menu;
 mod app_state;
+mod game;
 
 use std::env;
 use std::path::Path;
