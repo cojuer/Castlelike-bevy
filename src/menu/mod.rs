@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::app_state::AppState;
+use bevy::prelude::*;
 
 pub enum MainMenuButton {
     Continue,
@@ -10,22 +10,19 @@ pub enum MainMenuButton {
 }
 
 fn button_system(
-    mut interaction_query: Query<
-        (&Interaction, &Children),
-        (Changed<Interaction>, With<Button>),
-    >,
+    mut interaction_query: Query<(&Interaction, &Children), (Changed<Interaction>, With<Button>)>,
     mut text_query: Query<&mut Text>,
 ) {
     for (interaction, children) in interaction_query.iter_mut() {
         let text_style = &mut text_query.get_mut(children[0]).unwrap().sections[0].style;
         match *interaction {
-            Interaction::Clicked => { 
+            Interaction::Clicked => {
                 text_style.color = Color::rgb(0.8, 0.8, 0.8);
             }
-            Interaction::Hovered => { 
-                text_style.color = Color::rgb(0.6, 0.6, 0.6); 
+            Interaction::Hovered => {
+                text_style.color = Color::rgb(0.6, 0.6, 0.6);
             }
-            Interaction::None => { 
+            Interaction::None => {
                 text_style.color = Color::rgb(0.4, 0.4, 0.4);
             }
         }
@@ -189,13 +186,8 @@ fn main_menu_create(
                     });
                 });
         });
-    
 }
 
-pub fn main_menu_handle() {
+pub fn main_menu_handle() {}
 
-}
-
-pub fn main_menu_cleanup() {
-
-}
+pub fn main_menu_cleanup() {}

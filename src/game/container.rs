@@ -13,8 +13,12 @@ impl ItemKind for ItemStack {
 }
 
 impl Stackable for ItemStack {
-    fn amount(&self) -> usize { self.amount }
-    fn max_amount(&self) -> usize { self.max_amount }
+    fn amount(&self) -> usize {
+        self.amount
+    }
+    fn max_amount(&self) -> usize {
+        self.max_amount
+    }
 
     fn set_amount(&mut self, amount: usize) -> Result<(), ()> {
         if amount > self.max_amount {
@@ -66,16 +70,18 @@ pub trait Stackable {
 /// - consists of ordered slots;
 /// - limited size;
 /// - slot can store multiple items of the same kind;
-pub struct Container<T> 
-    where T: Stackable + ItemKind
+pub struct Container<T>
+where
+    T: Stackable + ItemKind,
 {
     slots: Vec<Option<T>>,
 }
 
-impl <T: Stackable + ItemKind> Container<T> {
-    pub fn new(size: usize) -> Self 
-    {
-        Self { slots: std::iter::repeat_with(|| None).take(size).collect() }
+impl<T: Stackable + ItemKind> Container<T> {
+    pub fn new(size: usize) -> Self {
+        Self {
+            slots: std::iter::repeat_with(|| None).take(size).collect(),
+        }
     }
 
     /// try to add item to the container
@@ -99,17 +105,18 @@ impl <T: Stackable + ItemKind> Container<T> {
             Some(slot_item) => {
                 if slot_item.item_kind() == item.item_kind() {
                     // unwrap as remaining amount is valid
-                    item.set_amount(slot_item.add_amount(item.amount())).unwrap();
+                    item.set_amount(slot_item.add_amount(item.amount()))
+                        .unwrap();
                     if item.amount() == 0 {
                         return None;
                     }
                 }
                 return Some(item);
-            },
+            }
             None => {
-                    self.slots[index] = Some(item);
-                    return None;
-                }
+                self.slots[index] = Some(item);
+                return None;
+            }
         }
     }
 
@@ -143,41 +150,63 @@ impl <T: Stackable + ItemKind> Container<T> {
 #[test]
 fn test_container_add_and_get() {
     let mut cont = Container::<ItemStack>::new(1);
-    let item = ItemStack { item_kind: 0, amount: 1, max_amount: 2};
+    let item = ItemStack {
+        item_kind: 0,
+        amount: 1,
+        max_amount: 2,
+    };
     cont.add_item(item);
     assert!(
-        cont.slot(0).is_some() 
-        && cont.slot(0).unwrap().item_kind() == 0
-        && cont.slot_mut(0).is_some()
-        && cont.slot_mut(0).unwrap().item_kind() == 0
+        cont.slot(0).is_some()
+            && cont.slot(0).unwrap().item_kind() == 0
+            && cont.slot_mut(0).is_some()
+            && cont.slot_mut(0).unwrap().item_kind() == 0
     );
 }
 
 #[test]
 fn test_container_take_removes_item() {
     let mut cont = Container::<ItemStack>::new(1);
-    let item = ItemStack { item_kind: 0, amount: 1, max_amount: 2};
+    let item = ItemStack {
+        item_kind: 0,
+        amount: 1,
+        max_amount: 2,
+    };
     cont.add_item(item);
-    assert!(
-        cont.take(0).is_some() && cont.slot(0).is_none()
-    );
+    assert!(cont.take(0).is_some() && cont.slot(0).is_none());
 }
 
 #[test]
 fn test_container_can_not_add_more_unique_items_than_slots() {
     let mut cont = Container::<ItemStack>::new(1);
-    let item1 = ItemStack { item_kind: 0, amount: 1, max_amount: 2};
+    let item1 = ItemStack {
+        item_kind: 0,
+        amount: 1,
+        max_amount: 2,
+    };
     cont.add_item(item1);
-    let item2 = ItemStack { item_kind: 1, amount: 1, max_amount: 2};
+    let item2 = ItemStack {
+        item_kind: 1,
+        amount: 1,
+        max_amount: 2,
+    };
     assert!(cont.add_item(item2).is_some());
 }
 
 #[test]
 fn test_container_add_multiple_items_to_slot() {
     let mut cont = Container::<ItemStack>::new(1);
-    let item1 = ItemStack { item_kind: 0, amount: 1, max_amount: 2};
+    let item1 = ItemStack {
+        item_kind: 0,
+        amount: 1,
+        max_amount: 2,
+    };
     cont.add_item(item1);
-    let item2 = ItemStack { item_kind: 0, amount: 1, max_amount: 2};
+    let item2 = ItemStack {
+        item_kind: 0,
+        amount: 1,
+        max_amount: 2,
+    };
     assert!(cont.add_item(item2).is_none());
     assert_eq!(cont.slot(0).unwrap().amount(), 2);
 }
@@ -185,11 +214,23 @@ fn test_container_add_multiple_items_to_slot() {
 #[test]
 fn test_container_items_fill_non_full_slots() {
     let mut cont = Container::<ItemStack>::new(3);
-    let item1 = ItemStack { item_kind: 0, amount: 2, max_amount: 3};
-    let item2 = ItemStack { item_kind: 0, amount: 2, max_amount: 3};
+    let item1 = ItemStack {
+        item_kind: 0,
+        amount: 2,
+        max_amount: 3,
+    };
+    let item2 = ItemStack {
+        item_kind: 0,
+        amount: 2,
+        max_amount: 3,
+    };
     cont.add_item(item1);
     cont.add_item(item2);
-    let item3 = ItemStack { item_kind: 0, amount: 3, max_amount: 3};
+    let item3 = ItemStack {
+        item_kind: 0,
+        amount: 3,
+        max_amount: 3,
+    };
     assert!(cont.add_item(item3).is_none());
     assert_eq!(cont.slot(0).unwrap().amount(), 3);
     assert_eq!(cont.slot(1).unwrap().amount(), 3);
