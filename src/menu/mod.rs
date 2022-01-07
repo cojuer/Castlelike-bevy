@@ -31,21 +31,19 @@ fn button_system(
 
 pub struct MainMenuCanvas;
 
-pub fn register_main_menu(app: &mut AppBuilder) {
-    app.add_state(AppState::MainMenu)
-        .add_system_set(
-            SystemSet::on_enter(AppState::MainMenu).with_system(main_menu_create.system()),
-        )
-        .add_system_set(
-            SystemSet::on_update(AppState::MainMenu).with_system(main_menu_handle.system()),
-        )
-        .add_system_set(
-            SystemSet::on_exit(AppState::MainMenu).with_system(main_menu_cleanup.system()),
-        )
-        .add_system(button_system.system());
+pub struct MainMenuPlugin;
+
+impl Plugin for MainMenuPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_state(AppState::MainMenu)
+            .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup.system()))
+            .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(handle.system()))
+            .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(cleanup.system()))
+            .add_system(button_system.system());
+    }
 }
 
-fn main_menu_create(
+fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -188,6 +186,22 @@ fn main_menu_create(
         });
 }
 
-pub fn main_menu_handle() {}
+pub fn handle(
+    interaction_query: Query<(&Interaction, &MainMenuButton)>,
+    mut app_state: ResMut<State<AppState>>,
+) {
+    for (i, b) in interaction_query.iter() {
+        match (i, b) {
+            (Interaction::Clicked, MainMenuButton::Continue) => {
+                app_state.set(AppState::Game).unwrap();
+            }
+            _ => {}
+        }
+    }
+}
 
-pub fn main_menu_cleanup() {}
+pub fn cleanup(mut commands: Commands, q: Query<Entity, With<MainMenuCanvas>>) {
+    commands
+        .entity(q.single().expect("problem with menu canvas query"))
+        .despawn_recursive();
+}

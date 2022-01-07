@@ -4,7 +4,6 @@ mod menu;
 
 use bevy::prelude::*;
 use bevy::window::WindowMode;
-use menu::register_main_menu;
 use serde::{Deserialize, Serialize};
 use serde_yaml;
 use std::env;
@@ -67,9 +66,14 @@ fn main() {
         })
         .system(),
     );
+
     app.add_system(bevy::input::system::exit_on_esc_system.system());
 
-    register_main_menu(&mut app);
+    use menu::MainMenuPlugin;
+    app.add_plugin(MainMenuPlugin);
+
+    use game::plugin::GamePlugin;
+    app.add_plugin(GamePlugin);
 
     app.run();
 }
