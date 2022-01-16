@@ -1,10 +1,12 @@
 use crate::app_state::AppState;
 use bevy::prelude::*;
 
+#[derive(Component)]
 pub enum MainMenuButton {
     Continue,
     Load,
-    Options,
+    NewGame,
+    Settings,
     Credits,
     Quit,
 }
@@ -29,12 +31,13 @@ fn button_system(
     }
 }
 
+#[derive(Component)]
 pub struct MainMenuCanvas;
 
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_state(AppState::MainMenu)
             .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup.system()))
             .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(handle.system()))
@@ -54,13 +57,9 @@ fn setup(
         color: Color::BLACK,
     };
     let button_style = Style::default();
-    let button_material = materials.add(Color::rgba(1., 1., 1., 0.).into());
+    let button_color = UiColor(Color::rgba(1., 1., 1., 0.));
 
-    let texture_handle = asset_server.load("images/menu_texture.png");
-    let material_handle = materials.add(ColorMaterial {
-        texture: Some(texture_handle.clone()),
-        ..Default::default()
-    });
+    let bg_image = UiImage(asset_server.load("images/menu_texture.png"));
 
     commands
         .spawn_bundle(NodeBundle {
@@ -71,7 +70,7 @@ fn setup(
                 flex_direction: FlexDirection::ColumnReverse,
                 ..Default::default()
             },
-            material: material_handle,
+            image: bg_image,
             ..Default::default()
         })
         .insert(MainMenuCanvas)
@@ -79,7 +78,7 @@ fn setup(
             parent
                 .spawn_bundle(ButtonBundle {
                     style: button_style.clone(),
-                    material: button_material.clone(),
+                    color: button_color,
                     ..Default::default()
                 })
                 .insert(MainMenuButton::Continue)
@@ -97,10 +96,10 @@ fn setup(
             parent
                 .spawn_bundle(ButtonBundle {
                     style: button_style.clone(),
-                    material: button_material.clone(),
+                    color: button_color,
                     ..Default::default()
                 })
-                .insert(MainMenuButton::Continue)
+                .insert(MainMenuButton::NewGame)
                 .with_children(|parent| {
                     parent.spawn_bundle(TextBundle {
                         text: Text::with_section(
@@ -115,7 +114,7 @@ fn setup(
             parent
                 .spawn_bundle(ButtonBundle {
                     style: button_style.clone(),
-                    material: button_material.clone(),
+                    color: button_color,
                     ..Default::default()
                 })
                 .insert(MainMenuButton::Continue)
@@ -133,10 +132,10 @@ fn setup(
             parent
                 .spawn_bundle(ButtonBundle {
                     style: button_style.clone(),
-                    material: button_material.clone(),
+                    color: button_color,
                     ..Default::default()
                 })
-                .insert(MainMenuButton::Continue)
+                .insert(MainMenuButton::Settings)
                 .with_children(|parent| {
                     parent.spawn_bundle(TextBundle {
                         text: Text::with_section(
@@ -151,10 +150,10 @@ fn setup(
             parent
                 .spawn_bundle(ButtonBundle {
                     style: button_style.clone(),
-                    material: button_material.clone(),
+                    color: button_color,
                     ..Default::default()
                 })
-                .insert(MainMenuButton::Continue)
+                .insert(MainMenuButton::Credits)
                 .with_children(|parent| {
                     parent.spawn_bundle(TextBundle {
                         text: Text::with_section(
@@ -169,7 +168,7 @@ fn setup(
             parent
                 .spawn_bundle(ButtonBundle {
                     style: button_style.clone(),
-                    material: button_material.clone(),
+                    color: button_color,
                     ..Default::default()
                 })
                 .insert(MainMenuButton::Quit)
@@ -192,7 +191,10 @@ pub fn handle(
 ) {
     for (i, b) in interaction_query.iter() {
         match (i, b) {
-            (Interaction::Clicked, MainMenuButton::Continue) => {
+            (
+                Interaction::Clicked,
+                MainMenuButton::Continue | MainMenuButton::Load | MainMenuButton::NewGame,
+            ) => {
                 app_state.set(AppState::Game).unwrap();
             }
             _ => {}
@@ -201,7 +203,5 @@ pub fn handle(
 }
 
 pub fn cleanup(mut commands: Commands, q: Query<Entity, With<MainMenuCanvas>>) {
-    commands
-        .entity(q.single().expect("problem with menu canvas query"))
-        .despawn_recursive();
+    commands.entity(q.single()).despawn_recursive();
 }

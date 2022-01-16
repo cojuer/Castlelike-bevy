@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.add_system_set(
             SystemSet::on_enter(AppState::Game).with_system(create_basic_scene.system()),
         )
@@ -18,7 +18,7 @@ impl Plugin for GamePlugin {
     }
 }
 
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq, Component)]
 pub struct Pos {
     pub x: usize,
     pub y: usize,
@@ -33,20 +33,28 @@ pub struct Scene {
     pub tile_collisions: HashMap<Pos, bool>,
 }
 
+#[derive(Component)]
 pub struct Tile;
 
+#[derive(Component)]
 pub struct Char;
 
+#[derive(Component)]
 pub struct PlayerControl;
+
+#[derive(Component)]
 pub struct AiControl;
 
+#[derive(Component)]
 pub struct Collision;
 
+#[derive(Component)]
 pub struct Health {
     pub current: u16,
     pub max: u16,
 }
 
+#[derive(Component)]
 pub struct Modifiers {
     pub offense: u16,
     pub defense: u16,
@@ -81,10 +89,7 @@ fn create_basic_scene(
         tile_collisions,
     };
 
-    let player_material = materials.add(ColorMaterial {
-        texture: Some(asset_server.load("images/player.png")),
-        ..Default::default()
-    });
+    let player_image = asset_server.load("images/player.png");
     // create player
     let player = commands
         .spawn()
@@ -97,7 +102,7 @@ fn create_basic_scene(
         .insert(Pos { x: 3, y: 3 })
         .insert(Collision)
         .insert_bundle(SpriteBundle {
-            material: player_material,
+            texture: player_image,
             ..Default::default()
         })
         .id();
@@ -108,8 +113,8 @@ fn create_basic_scene(
 }
 
 pub struct TileFactory {
-    pub wall_material: Handle<ColorMaterial>,
-    pub floor_material: Handle<ColorMaterial>,
+    pub wall_material: Handle<Image>,
+    pub floor_material: Handle<Image>,
 }
 
 impl TileFactory {
@@ -118,21 +123,15 @@ impl TileFactory {
         materials: &mut ResMut<Assets<ColorMaterial>>,
     ) -> Self {
         Self {
-            wall_material: materials.add(ColorMaterial {
-                texture: Some(asset_server.load("images/wall.png")),
-                ..Default::default()
-            }),
-            floor_material: materials.add(ColorMaterial {
-                texture: Some(asset_server.load("images/floor.png")),
-                ..Default::default()
-            }),
+            wall_material: asset_server.load("images/wall.png"),
+            floor_material: asset_server.load("images/floor.png"),
         }
     }
 
     pub fn spawn_wall(&self, commands: &mut Commands, pos: Pos) -> Entity {
         commands
             .spawn_bundle(SpriteBundle {
-                material: self.wall_material.clone(),
+                texture: self.wall_material.clone(),
                 ..Default::default()
             })
             .insert_bundle((Tile, pos, Collision))
@@ -142,7 +141,7 @@ impl TileFactory {
     pub fn spawn_floor(&self, commands: &mut Commands, pos: Pos) -> Entity {
         commands
             .spawn_bundle(SpriteBundle {
-                material: self.floor_material.clone(),
+                texture: self.floor_material.clone(),
                 ..Default::default()
             })
             .insert_bundle((Tile, pos, Collision))
@@ -155,10 +154,8 @@ fn control_player(
     scene: Res<Scene>,
     inputs: Res<Input<KeyCode>>,
 ) {
-    let mut position = match player_query.single_mut() {
-        Ok(pos) => pos,
-        _ => panic!("either no player entity or multiple"),
-    };
+    // TODO: check how new single_mut works
+    let mut position = player_query.single_mut();
     let mut new_pos = position.clone();
 
     if inputs.is_changed() {
@@ -174,6 +171,8 @@ fn control_player(
     // !!!: Changed detection is triggered by DerefMut
     // meaning even if we rewrite position with equal value Changed will trigger
     if scene.tile_collisions.get(&new_pos) == Some(&false) && *position != new_pos {
+        use bevy::log::*;
+        info!("player moved");
         *position = new_pos;
     }
 }

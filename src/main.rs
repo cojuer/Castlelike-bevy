@@ -45,13 +45,13 @@ fn main() {
         cfg.render.width, cfg.render.height, cfg.render.fullscreen
     );
 
-    let mut app = App::build();
+    let mut app = App::new();
     app.insert_resource(WindowDescriptor {
         width: cfg.render.width.into(),
         height: cfg.render.height.into(),
         vsync: true,
         mode: if cfg.render.fullscreen {
-            WindowMode::Fullscreen { use_size: false }
+            WindowMode::Fullscreen
         } else {
             WindowMode::Windowed
         },
