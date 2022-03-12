@@ -39,18 +39,14 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_state(AppState::MainMenu)
-            .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup.system()))
-            .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(handle.system()))
-            .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(cleanup.system()))
-            .add_system(button_system.system());
+            .add_system_set(SystemSet::on_enter(AppState::MainMenu).with_system(setup))
+            .add_system_set(SystemSet::on_update(AppState::MainMenu).with_system(handle))
+            .add_system_set(SystemSet::on_exit(AppState::MainMenu).with_system(cleanup))
+            .add_system(button_system);
     }
 }
 
-fn setup(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let button_text_style = TextStyle {
         font: asset_server.load("fonts/Lato-Regular.ttf"),
         font_size: 25.0,

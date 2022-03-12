@@ -59,15 +59,12 @@ fn main() {
     });
     app.add_plugins(DefaultPlugins);
 
-    app.add_startup_system(
-        (|mut commands: Commands| {
-            commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-            commands.spawn_bundle(UiCameraBundle::default());
-        })
-        .system(),
-    );
+    app.add_startup_system(|mut commands: Commands| {
+        commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+        commands.spawn_bundle(UiCameraBundle::default());
+    });
 
-    app.add_system(bevy::input::system::exit_on_esc_system.system());
+    app.add_system(bevy::input::system::exit_on_esc_system);
 
     use menu::MainMenuPlugin;
     app.add_plugin(MainMenuPlugin);

@@ -6,15 +6,13 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system_set(
-            SystemSet::on_enter(AppState::Game).with_system(create_basic_scene.system()),
-        )
-        .add_system_set(
-            SystemSet::on_update(AppState::Game)
-                .with_system(control_player.system())
-                .with_system(update_position.system()),
-        )
-        .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup.system()));
+        app.add_system_set(SystemSet::on_enter(AppState::Game).with_system(create_basic_scene))
+            .add_system_set(
+                SystemSet::on_update(AppState::Game)
+                    .with_system(control_player)
+                    .with_system(update_position),
+            )
+            .add_system_set(SystemSet::on_exit(AppState::Game).with_system(cleanup));
     }
 }
 
@@ -60,13 +58,9 @@ pub struct Modifiers {
     pub defense: u16,
 }
 
-fn create_basic_scene(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
+fn create_basic_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
     // create scene
-    let tile_factory = TileFactory::new(&asset_server, &mut materials);
+    let tile_factory = TileFactory::new(&asset_server);
 
     let mut tile_collisions = HashMap::new();
     let scene_size: usize = 5;
@@ -82,7 +76,7 @@ fn create_basic_scene(
         }
     }
 
-    let scene = Scene {
+    let mut scene = Scene {
         _width: scene_size,
         _height: scene_size,
         entities: HashMap::new(),
@@ -106,9 +100,15 @@ fn create_basic_scene(
             ..Default::default()
         })
         .id();
+    scene
+        .entities
+        .entry(Pos { x: 3, y: 3 })
+        .or_insert(Vec::new())
+        .push(player);
 
-    let mut entities = HashMap::new();
-    entities.insert(&Pos { x: 3, y: 3 }, player);
+    // create dummy npc
+    spawn_npc(&mut commands, &asset_server, &mut scene);
+
     commands.insert_resource(scene);
 }
 
@@ -117,11 +117,30 @@ pub struct TileFactory {
     pub floor_material: Handle<Image>,
 }
 
+fn spawn_npc(commands: &mut Commands, asset_server: &Res<AssetServer>, scene: &mut Scene) {
+    let npc_image = asset_server.load("images/npc.png");
+    let npc = commands
+        .spawn()
+        .insert(Char)
+        .insert(AiControl)
+        .insert(Health { current: 3, max: 3 })
+        .insert(Pos { x: 1, y: 1 })
+        .insert(Collision)
+        .insert_bundle(SpriteBundle {
+            texture: npc_image,
+            ..Default::default()
+        })
+        .id();
+
+    let pos_entities = scene
+        .entities
+        .entry(Pos { x: 1, y: 1 })
+        .or_insert(Vec::new());
+    pos_entities.push(npc);
+}
+
 impl TileFactory {
-    pub fn new(
-        asset_server: &Res<AssetServer>,
-        materials: &mut ResMut<Assets<ColorMaterial>>,
-    ) -> Self {
+    pub fn new(asset_server: &Res<AssetServer>) -> Self {
         Self {
             wall_material: asset_server.load("images/wall.png"),
             floor_material: asset_server.load("images/floor.png"),
@@ -150,12 +169,13 @@ impl TileFactory {
 }
 
 fn control_player(
-    mut player_query: Query<&mut Pos, With<PlayerControl>>,
-    scene: Res<Scene>,
+    mut commands: Commands,
+    mut player_query: Query<(Entity, &mut Pos), With<PlayerControl>>,
+    mut scene: ResMut<Scene>,
     inputs: Res<Input<KeyCode>>,
+    mut hp_entities: Query<&mut Health>,
 ) {
-    // TODO: check how new single_mut works
-    let mut position = player_query.single_mut();
+    let (player, mut position) = player_query.single_mut();
     let mut new_pos = position.clone();
 
     if inputs.is_changed() {
@@ -168,13 +188,52 @@ fn control_player(
         }
     }
 
+    let mut attacked = false;
+    let mut entities_to_remove: Vec<Entity> = Vec::new();
+    if *position != new_pos {
+        // we do not want player to attack himself
+        if let Some(pos_entities) = scene.entities.get(&new_pos) {
+            for entity in pos_entities {
+                if let Ok(mut health) = hp_entities.get_mut(*entity) {
+                    health.current -= 1;
+                    if health.current == 0 {
+                        entities_to_remove.push(*entity);
+                        commands.entity(*entity).despawn();
+                    }
+                    attacked = true;
+                }
+            }
+        }
+    }
+    if attacked {
+        info!("player attacked");
+        return;
+    }
+
     // !!!: Changed detection is triggered by DerefMut
     // meaning even if we rewrite position with equal value Changed will trigger
     if scene.tile_collisions.get(&new_pos) == Some(&false) && *position != new_pos {
         use bevy::log::*;
         info!("player moved");
+        move_entity(&mut scene, &player, &position, &new_pos);
         *position = new_pos;
     }
+}
+
+fn move_entity(scene: &mut Scene, entity: &Entity, old_pos: &Pos, new_pos: &Pos) {
+    let index = scene
+        .entities
+        .get_mut(old_pos)
+        .unwrap()
+        .iter()
+        .position(|x| x == entity)
+        .expect("player not found");
+    scene.entities.get_mut(old_pos).unwrap().remove(index);
+    scene
+        .entities
+        .entry(*new_pos)
+        .or_insert(Vec::new())
+        .push(*entity);
 }
 
 const TILE_SIZE: usize = 32;
